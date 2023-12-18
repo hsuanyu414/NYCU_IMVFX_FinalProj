@@ -29,6 +29,10 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         self.pre_alpha.clicked.connect(self.predict_alpha)
         self.com.clicked.connect(self.compose)
 
+        self.save_tri.clicked.connect(self.save_trimap)
+        self.save_alpha.clicked.connect(self.save_alpha_matte)
+        self.save_com.clicked.connect(self.save_compose)
+
 
     def qimg2np(self, qimg):
         qimg = qimg.convertToFormat(QtGui.QImage.Format.Format_RGB888)
@@ -89,9 +93,6 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
             print("Foreground image or trimap is not selected")
             return
         self.alpha_matte = matting.matting(self.matting_args, self.matting_model, self.fg_image, self.trimap)
-        print(self.alpha_matte.shape)
-        print(self.alpha_matte.max())
-        print(self.alpha_matte.min())
         self.show_image(self.alpha_matte, self.alpha)
 
     def compose(self):
@@ -102,6 +103,32 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         self.show_image(self.res_image, self.com_res)
 
     
+    def save_img(self, image):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        fileName, _ = QFileDialog.getSaveFileName(self, "Save Image", "", "Image Files (*.png *.jpg *.jpeg *.bmp *.gif)", options=options)
+        if fileName:
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(fileName, image)
+
+    def save_trimap(self):
+        if self.trimap is None:
+            print("Trimap is not selected")
+            return
+        self.save_img(self.trimap)
+
+    def save_alpha_matte(self):
+        if self.alpha_matte is None:
+            print("Alpha matte is not selected")
+            return
+        self.save_img(self.alpha_matte)
+
+    def save_compose(self):
+        if self.res_image is None:
+            print("Compose image is not selected")
+            return
+        self.save_img(self.res_image)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
