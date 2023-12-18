@@ -55,11 +55,14 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         options |= QFileDialog.DontUseNativeDialog
         fileName, _ = QFileDialog.getOpenFileName(self, "Select Image", "", "Image Files (*.png *.jpg *.jpeg *.bmp *.gif)", options=options)
         if fileName:
-            pixmap = QtGui.QPixmap(fileName)
-            if not pixmap.isNull():
-                image = pixmap.toImage()
-                image = self.qimg2np(image)
-                return image
+            image = cv2.imread(fileName, cv2.IMREAD_COLOR)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            return image
+            # pixmap = QtGui.QPixmap(fileName)
+            # if not pixmap.isNull():
+            #     image = pixmap.toImage()
+            #     image = self.qimg2np(image)
+            #     return image
 
     def show_image(self, image, graphicsView):
         pixmap = QtGui.QPixmap.fromImage(self.np2qimg(image))
