@@ -1,10 +1,10 @@
 from tqdm import tqdm
-import network
-import utils
+import deeplabv3plus.network as network
+import deeplabv3plus.utils as utils
 import os
 import argparse
 
-from datasets import VOCSegmentation, Cityscapes
+from deeplabv3plus.datasets import VOCSegmentation, Cityscapes
 from torchvision import transforms as T
 
 import torch
@@ -36,15 +36,15 @@ def get_argparser():
     parser.add_argument("--separable_conv", action='store_true', default=False,
                         help="apply separable conv to decoder and aspp")
     parser.add_argument("--output_stride", type=int, default=16, choices=[8, 16])
-    parser.add_argument("--ckpt", default="weight/best_deeplabv3plus_resnet50_voc_os16.pth", type=str,
+    parser.add_argument("--ckpt", default="deeplabv3plus/weight/best_deeplabv3plus_resnet50_voc_os16.pth", type=str,
                         help="resume from checkpoint")
     
     ## Generate Trimap
     parser.add_argument("--size", type=int, default=15,
                         help="Erosion and Dilation Size") # Unknown Region Thickness
-    parser.add_argument("--defg", type=object, default=Erosion,
+    parser.add_argument("--defg", type=object, default=None,
                         help="None/Dilation/Erosion")
-    parser.add_argument("--num_iter", type=object, default=10,
+    parser.add_argument("--num_iter", type=object, default=0,
                         help="Dilation/Erosion num iters")
     
     return parser
