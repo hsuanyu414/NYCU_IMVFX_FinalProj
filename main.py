@@ -9,6 +9,7 @@ import matting
 from ui import Ui_Dialog
 import cv2
 import numpy as np
+from seg import generater_trimap, segment
 
 class MyDialog(QtWidgets.QDialog, Ui_Dialog):
     def __init__(self):
@@ -25,6 +26,7 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         self.setupUi(self)
         self.select_fg.clicked.connect(self.select_foreground)
         self.select_tri.clicked.connect(self.select_trimap)  
+        self.gen_tri.clicked.connect(self.generater_trimap)  
         self.select_bg.clicked.connect(self.select_background)
         self.pre_alpha.clicked.connect(self.predict_alpha)
         self.com.clicked.connect(self.compose)
@@ -50,7 +52,6 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         return qimg
 
     def select_image(self):
-        print("Select Foreground button clicked")
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         fileName, _ = QFileDialog.getOpenFileName(self, "Select Image", "", "Image Files (*.png *.jpg *.jpeg *.bmp *.gif)", options=options)
@@ -74,18 +75,52 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
 
     
     def select_foreground(self):
+        print("Select Foreground button clicked")
         self.fg_image = self.select_image()
         if self.fg_image is None:
             return
         self.show_image(self.fg_image, self.fg)
 
     def select_trimap(self):
+        print("Select Trimap button clicked")
         self.trimap = self.select_image()
         if self.trimap is None:
             return
         self.show_image(self.trimap, self.tri)
 
+    def generater_trimap(self):
+        print("Generate Trimap button clicked")
+        if self.fg_image is None:
+            return
+        seg_image = segment(self.fg_image)
+        img = cv2.cvtColor(seg_image, cv2.COLOR_BGR2HSV)
+        def getpos(event,x,y,flags,param):
+            if event == 1:
+                HSV_color = img[y, x]
+                #print(f"x: {x}, y: {y}, hsv: {HSV_color}")
+                if ~(HSV_color[0] == 0 and HSV_color[1] == 0 and HSV_color[1] == 0):
+                    lower_bound = np.array([HSV_color[0], HSV_color[1], HSV_color[2]])
+                    upper_bound = np.array([HSV_color[0], HSV_color[1], HSV_color[2]])
+                    mask = cv2.inRange(img, lower_bound, upper_bound)
+                    img[mask > 0] = [255, 255, 255]
+                    cv2.imshow('Mask Image', img)
+
+        cv2.imshow('Mask Image', img)
+        cv2.setMouseCallback('Mask Image', getpos)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+        lower_bound = np.array([0,0, 0])
+        upper_bound = np.array([255, 255, 244])
+        mask = cv2.inRange(img, lower_bound, upper_bound)
+        img[mask > 0] = [0, 0, 0]
+        mask_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        self.trimap = generater_trimap(mask_img)
+
+        self.show_image(self.trimap, self.tri)
+
     def select_background(self):
+        print("Select Background button clicked")
         self.bg_image = self.select_image()
         if self.bg_image is None:
             return

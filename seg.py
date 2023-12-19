@@ -15,14 +15,14 @@ from glob import glob
 
 import numpy as np
 from trimap_generator.trimap_class import trimap,Dilation,Erosion
-
+import cv2
 
 def get_argparser():
     parser = argparse.ArgumentParser()
 
     # Datset Options
-    parser.add_argument("--input", type=str, required=True,
-                        help="path to a single image or image directory")
+    # parser.add_argument("--input", type=str, required=True,
+    #                     help="path to a single image or image directory")
     parser.add_argument("--dataset", type=str, default='voc',
                         choices=['voc', 'cityscapes'], help='Name of training set')
 
@@ -39,6 +39,7 @@ def get_argparser():
     parser.add_argument("--ckpt", default="deeplabv3plus/weight/best_deeplabv3plus_resnet50_voc_os16.pth", type=str,
                         help="resume from checkpoint")
     
+    '''
     ## Generate Trimap
     parser.add_argument("--size", type=int, default=15,
                         help="Erosion and Dilation Size") # Unknown Region Thickness
@@ -46,11 +47,12 @@ def get_argparser():
                         help="None/Dilation/Erosion")
     parser.add_argument("--num_iter", type=object, default=0,
                         help="Dilation/Erosion num iters")
-    
+    '''
     return parser
 
-def segment(opts):
-    
+
+def segment(input_img):
+    opts = get_argparser().parse_args()
     if opts.dataset.lower() == 'voc':
         opts.num_classes = 21
         decode_fn = VOCSegmentation.decode_target
@@ -63,14 +65,14 @@ def segment(opts):
     print("Device: %s" % device)
 
     # Setup dataloader
-    image_files = []
-    if os.path.isdir(opts.input):
-        for ext in ['png', 'jpeg', 'jpg', 'JPEG']:
-            files = glob(os.path.join(opts.input, '**/*.%s'%(ext)), recursive=True)
-            if len(files)>0:
-                image_files.extend(files)
-    elif os.path.isfile(opts.input):
-        image_files.append(opts.input)
+    # image_files = []
+    # if os.path.isdir(opts.input):
+    #     for ext in ['png', 'jpeg', 'jpg', 'JPEG']:
+    #         files = glob(os.path.join(opts.input, '**/*.%s'%(ext)), recursive=True)
+    #         if len(files)>0:
+    #             image_files.extend(files)
+    # elif os.path.isfile(opts.input):
+    #     image_files.append(opts.input)
     
     # Set up model (all models are 'constructed at network.modeling)
     model = network.modeling.__dict__[opts.model](num_classes=opts.num_classes, output_stride=opts.output_stride)
@@ -100,28 +102,30 @@ def segment(opts):
     
     with torch.no_grad():
         model = model.eval()
-        for img_path in tqdm(image_files):
-            ext = os.path.basename(img_path).split('.')[-1]
-            img_name = os.path.basename(img_path)[:-len(ext)-1]
-            img = Image.open(img_path).convert('RGB')
-            img = transform(img).unsqueeze(0) # To tensor of NCHW
-            img = img.to(device)
-            
-            pred = model(img).max(1)[1].cpu().numpy()[0] # HW
-            colorized_preds = decode_fn(pred).astype('uint8')
-            colorized_preds = Image.fromarray(colorized_preds)
+        # for img_path in tqdm(image_files):
+        #     ext = os.path.basename(img_path).split('.')[-1]
+        #     img_name = os.path.basename(img_path)[:-len(ext)-1]
+            # img = Image.open(img_path).convert('RGB')
+        img = Image.fromarray(input_img)
+        img = transform(img).unsqueeze(0) # To tensor of NCHW
+        img = img.to(device)
+                    
+        pred = model(img).max(1)[1].cpu().numpy()[0] # HW
+        colorized_preds = decode_fn(pred).astype('uint8')
+        colorized_preds = Image.fromarray(colorized_preds)
+        #colorized_preds = cv2.convertScaleAbs(colorized_preds)
+        colorized_preds = cv2.cvtColor(np.asarray(colorized_preds), cv2.COLOR_RGB2BGR)
+
 
     return colorized_preds
 
-
-
-#======Temp ======
-if __name__ == '__main__':
-    opts = get_argparser().parse_args()
-
-    # Segment
-    img = segment(opts)
-    img.save(f'./image/seg_img/{os.path.basename(opts.input)}')
+def generater_trimap(img):
+    
+    parser1 = argparse.ArgumentParser()
+    opts = parser1.parse_args() 
+    opts.size = 20
+    opts.defg = Erosion  # None/Dilation/Erosion
+    opts.num_iter = 5   #Dilation/Erosion num iters
 
     # Change to Mask (0 or 255)
     img_np = np.array(img)
@@ -130,8 +134,22 @@ if __name__ == '__main__':
 
     #Generate trimap
     trimap_img = trimap(opts,gray_img_np)
-    img = Image.fromarray(trimap_img)
-    img = img.convert('L')
-    img.save(f'./image/trimap_img/{os.path.basename(opts.input)}')
+    trimap_img = cv2.convertScaleAbs(trimap_img)
+    trimap_img = cv2.cvtColor(trimap_img, cv2.COLOR_RGB2BGR)
 
+    return trimap_img
+
+#======Temp ======
+'''
+if __name__ == '__main__':
+    # Segment
+    img = segment()
+    img.show()
+    #img.save(f'./image/seg_img/{os.path.basename(opts.input)}')
+
+    # Generate trimap
+    img = generater_trimap(img)
+    img.show()
+    #img.save(f'./image/trimap_img/{os.path.basename(opts.input)}')
+'''
     
