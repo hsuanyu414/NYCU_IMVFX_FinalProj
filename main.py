@@ -25,11 +25,13 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         
         self.setupUi(self)
         self.select_fg.clicked.connect(self.select_foreground)
+        self.crop_fg.clicked.connect(self.crop_foreground)
         self.select_tri.clicked.connect(self.select_trimap)  
         self.gen_tri.clicked.connect(self.generater_trimap)  
         self.select_bg.clicked.connect(self.select_background)
         self.pre_alpha.clicked.connect(self.predict_alpha)
         self.com.clicked.connect(self.compose)
+        
 
         self.save_tri.clicked.connect(self.save_trimap)
         self.save_alpha.clicked.connect(self.save_alpha_matte)
@@ -139,7 +141,6 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
             return
         self.res_image = matting.composing(self.fg_image, self.alpha_matte, self.bg_image)
         self.show_image(self.res_image, self.com_res)
-
     
     def save_img(self, image):
         options = QFileDialog.Options()
@@ -166,6 +167,57 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
             print("Compose image is not selected")
             return
         self.save_img(self.res_image)
+
+    def crop_foreground(self):
+        if self.fg_image is None:
+            print("Foreground image is not selected")
+            return
+        fg_image_temp = self.fg_image.copy()
+        fg_image_temp = cv2.cvtColor(fg_image_temp, cv2.COLOR_RGB2BGR)
+
+        clone_image = fg_image_temp.copy() 
+        cv2.namedWindow("Select Region to Crop")
+        cv2.imshow("Select Region to Crop", clone_image)
+
+        cropping = False
+        x_start, y_start, x_end, y_end = 0, 0, 0, 0
+
+        def crop(event, x, y, flags, param):
+            nonlocal x_start, y_start, x_end, y_end, cropping, clone_image, fg_image_temp
+
+            if event == cv2.EVENT_LBUTTONDOWN:
+                x_start, y_start, x_end, y_end = x, y, x, y
+                cropping = True
+
+            elif event == cv2.EVENT_MOUSEMOVE:
+                if cropping:
+                    clone_image = fg_image_temp.copy()
+                    cv2.rectangle(clone_image, (x_start, y_start), (x, y), (0, 255, 0), 2)
+                    cv2.imshow("Select Region to Crop", clone_image)
+
+            elif event == cv2.EVENT_LBUTTONUP:
+                x_end, y_end = x, y
+                cropping = False
+                cv2.rectangle(clone_image, (x_start, y_start), (x_end, y_end), (0, 255, 0), 2)
+                cv2.imshow("Select Region to Crop", clone_image)
+
+        cv2.setMouseCallback("Select Region to Crop", crop)
+
+        while True:
+            key = cv2.waitKey(1) & 0xFF
+            if key == 13:
+                break
+        cv2.destroyAllWindows()
+
+        cropped_image = fg_image_temp[min(y_start, y_end):max(y_start, y_end), min(x_start, x_end):max(x_start, x_end)]
+        cv2.imshow("Cropped Foreground Image", cropped_image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+        cropped_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB)
+        self.fg_image = cropped_image
+        self.show_image(self.fg_image, self.fg)
+
 
 
 if __name__ == "__main__":
