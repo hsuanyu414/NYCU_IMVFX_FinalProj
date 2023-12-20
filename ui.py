@@ -63,17 +63,21 @@ class Ui_Dialog(object):
         self.groupBox.setGeometry(QtCore.QRect(850, 20, 211, 531))
         self.groupBox.setObjectName("groupBox")
         self.save_tri = QtWidgets.QPushButton(self.groupBox)
-        self.save_tri.setGeometry(QtCore.QRect(20, 40, 140, 28))
+        self.save_tri.setGeometry(QtCore.QRect(20, 40, 151, 28))
         self.save_tri.setMouseTracking(False)
         self.save_tri.setObjectName("save_tri")
         self.save_alpha = QtWidgets.QPushButton(self.groupBox)
-        self.save_alpha.setGeometry(QtCore.QRect(20, 80, 140, 28))
+        self.save_alpha.setGeometry(QtCore.QRect(20, 80, 151, 28))
         self.save_alpha.setMouseTracking(False)
         self.save_alpha.setObjectName("save_alpha")
         self.save_com = QtWidgets.QPushButton(self.groupBox)
-        self.save_com.setGeometry(QtCore.QRect(20, 120, 140, 28))
+        self.save_com.setGeometry(QtCore.QRect(20, 120, 151, 28))
         self.save_com.setMouseTracking(False)
         self.save_com.setObjectName("save_com")
+        self.save_com_pure = QtWidgets.QPushButton(self.groupBox)
+        self.save_com_pure.setGeometry(QtCore.QRect(20, 160, 151, 61))
+        self.save_com_pure.setMouseTracking(False)
+        self.save_com_pure.setObjectName("save_com_pure")
 
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
@@ -93,3 +97,15 @@ class Ui_Dialog(object):
         self.save_tri.setText(_translate("Dialog", "Save Trimap"))
         self.save_alpha.setText(_translate("Dialog", "Save Alpha Matte"))
         self.save_com.setText(_translate("Dialog", "Save Compose Image"))
+        self.save_com_pure.setText(_translate("Dialog", "Save Image with\n"
+" Transparent Background"))
+
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    Dialog = QtWidgets.QDialog()
+    ui = Ui_Dialog()
+    ui.setupUi(Dialog)
+    Dialog.show()
+    sys.exit(app.exec_())

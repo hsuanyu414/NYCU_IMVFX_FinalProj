@@ -17,6 +17,7 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         self.fg_image = None
         self.trimap = None
         self.alpha_matte = None
+        self.pure_fg = None
         self.bg_image = None
         self.res_image = None
 
@@ -36,7 +37,7 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         self.save_tri.clicked.connect(self.save_trimap)
         self.save_alpha.clicked.connect(self.save_alpha_matte)
         self.save_com.clicked.connect(self.save_compose)
-
+        self.save_com_pure.clicked.connect(self.save_compose_pure)
 
     def qimg2np(self, qimg):
         qimg = qimg.convertToFormat(QtGui.QImage.Format.Format_RGB888)
@@ -133,6 +134,7 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
             print("Foreground image or trimap is not selected")
             return
         self.alpha_matte = matting.matting(self.matting_args, self.matting_model, self.fg_image, self.trimap)
+        self.pure_fg = matting.composing(self.fg_image, self.alpha_matte)
         self.show_image(self.alpha_matte, self.alpha)
 
     def compose(self):
@@ -147,7 +149,17 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         options |= QFileDialog.DontUseNativeDialog
         fileName, _ = QFileDialog.getSaveFileName(self, "Save Image", "", "Image Files (*.png *.jpg *.jpeg *.bmp *.gif)", options=options)
         if fileName:
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            if fileName.split(".")[-1] not in ["png", "jpg", "jpeg", "bmp", "gif"]:
+                fileName += ".png"
+            if image.shape[2] == 3:
+                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            elif image.shape[2] == 4:
+                if fileName.split(".")[-1] != "png":
+                    fileName += ".png"
+                image = cv2.cvtColor(image, cv2.COLOR_RGBA2BGRA)
+            else:
+                print("Image shape is not correct")
+                return
             cv2.imwrite(fileName, image)
 
     def save_trimap(self):
@@ -167,6 +179,12 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
             print("Compose image is not selected")
             return
         self.save_img(self.res_image)
+
+    def save_compose_pure(self):
+        if self.pure_fg is None:
+            print("Compose image is not selected")
+            return
+        self.save_img(self.pure_fg)
 
     def crop_foreground(self):
         if self.fg_image is None:

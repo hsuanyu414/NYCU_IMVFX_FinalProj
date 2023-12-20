@@ -69,7 +69,7 @@ def composing(fg, alpha_matte, bg=None):
         # return an RGBA image
         composing_res = fg * alpha_matte
         composing_alpha = alpha_matte * 255
-        composing_res = np.concatenate((composing_res, composing_alpha), axis=2)
+        composing_res = np.concatenate((composing_res, composing_alpha[:,:,0:1]), axis=2)
     else:
         bg = cv2.resize(bg, (fg.shape[1], fg.shape[0]), interpolation=cv2.INTER_LINEAR)
         composing_res = fg * alpha_matte + bg * (1 - alpha_matte)
@@ -83,10 +83,10 @@ def composing(fg, alpha_matte, bg=None):
 
 if __name__ == "__main__":
     image_fg = cv2.imread("people.jpg", cv2.IMREAD_COLOR)
-    trimap = cv2.imread("people_tri.png", cv2.IMREAD_GRAYSCALE)
-    image_bg = np.ones(image_fg.shape, dtype=np.uint8) * 255
+    trimap = cv2.imread("people_tri.png", cv2.IMREAD_COLOR)
+    # image_bg = np.ones(image_fg.shape, dtype=np.uint8) * 255
     args = args_init()
     model = model_load(args)
     alpha_matte = matting(args, model, image_fg, trimap)
-    res = composing(image_fg, alpha_matte, image_bg)
+    res = composing(image_fg, alpha_matte)
     cv2.imwrite("people_res.png", res)
