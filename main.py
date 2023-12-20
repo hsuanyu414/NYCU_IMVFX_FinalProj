@@ -79,16 +79,20 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
     
     def select_foreground(self):
         print("Select Foreground button clicked")
-        self.fg_image = self.select_image()
-        if self.fg_image is None:
+        ret = self.select_image()
+        if ret is None:
             return
+        else:
+            self.fg_image = ret
         self.show_image(self.fg_image, self.fg)
 
     def select_trimap(self):
         print("Select Trimap button clicked")
-        self.trimap = self.select_image()
-        if self.trimap is None:
+        ret = self.select_image()
+        if ret is None:
             return
+        else:
+            self.trimap = ret
         self.show_image(self.trimap, self.tri)
 
     def generater_trimap(self):
@@ -124,9 +128,11 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
 
     def select_background(self):
         print("Select Background button clicked")
-        self.bg_image = self.select_image()
-        if self.bg_image is None:
+        ret = self.select_image()
+        if ret is None:
             return
+        else:
+            self.bg_image = ret 
         self.show_image(self.bg_image, self.bg)
 
     def predict_alpha(self):
