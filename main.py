@@ -15,11 +15,15 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
     def __init__(self):
         super().__init__()
         self.fg_image = None
+        self.segment = None
         self.trimap = None
         self.alpha_matte = None
         self.pure_fg = None
         self.bg_image = None
         self.res_image = None
+        self.size_value = 20
+        self.defg_value = 0
+        self.num_iters_value = 0
 
         self.matting_args = matting.args_init()
         self.matting_model = matting.model_load(self.matting_args)
@@ -27,13 +31,16 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         self.setupUi(self)
         self.select_fg.clicked.connect(self.select_foreground)
         self.crop_fg.clicked.connect(self.crop_foreground)
-        self.select_tri.clicked.connect(self.select_trimap)  
+        self.select_tri.clicked.connect(self.select_trimap) 
+        self.gen_seg.clicked.connect(self.generater_segment)   
         self.gen_tri.clicked.connect(self.generater_trimap)  
         self.select_bg.clicked.connect(self.select_background)
         self.pre_alpha.clicked.connect(self.predict_alpha)
         self.com.clicked.connect(self.compose)
         
-
+        self.spinBox_size.valueChanged.connect(self.size_changed)
+        self.spinBox_num_iters.valueChanged.connect(self.num_iters_changed)
+        self.comboBox.currentIndexChanged.connect(self.defg_changed)
         self.save_tri.clicked.connect(self.save_trimap)
         self.save_alpha.clicked.connect(self.save_alpha_matte)
         self.save_com.clicked.connect(self.save_compose)
@@ -95,12 +102,33 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
             self.trimap = ret
         self.show_image(self.trimap, self.tri)
 
-    def generater_trimap(self):
-        print("Generate Trimap button clicked")
+    def generater_segment(self):
+        print("Generate Segment button clicked")
         if self.fg_image is None:
             return
-        seg_image = segment(self.fg_image)
-        img = cv2.cvtColor(seg_image, cv2.COLOR_BGR2HSV)
+        self.segment = segment(self.fg_image)
+        self.show_image(self.segment, self.seg)
+
+    def size_changed(self):
+        print("Unknown Region Thickness Changed")
+        self.size_value = self.spinBox_size.value()
+        #print(self.size_value)
+    
+    def defg_changed(self):
+        print("Defg Changed")
+        self.defg_value = self.comboBox.currentIndex()
+        #print(self.defg_value)
+    
+    def num_iters_changed(self):
+        print("Num Iters Changed")
+        self.num_iters_value = self.spinBox_num_iters.value()
+        #print(self.num_iters_value)
+    
+    def generater_trimap(self):
+        print("Generate Trimap button clicked")
+        if self.segment is None:
+            return
+        img = cv2.cvtColor(self.segment, cv2.COLOR_BGR2HSV)
         def getpos(event,x,y,flags,param):
             if event == 1:
                 HSV_color = img[y, x]
@@ -122,7 +150,7 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         mask = cv2.inRange(img, lower_bound, upper_bound)
         img[mask > 0] = [0, 0, 0]
         mask_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        self.trimap = generater_trimap(mask_img)
+        self.trimap = generater_trimap(mask_img,self.size_value,self.defg_value,self.num_iters_value)
 
         self.show_image(self.trimap, self.tri)
 

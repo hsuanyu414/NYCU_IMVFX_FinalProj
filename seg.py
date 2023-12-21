@@ -31,12 +31,12 @@ def get_argparser():
                               not (name.startswith("__") or name.startswith('_')) and callable(
                               network.modeling.__dict__[name])
                               )
-    parser.add_argument("--model", type=str, default='deeplabv3plus_resnet50',
+    parser.add_argument("--model", type=str, default='deeplabv3plus_resnet101',
                         choices=available_models, help='model name')
     parser.add_argument("--separable_conv", action='store_true', default=False,
                         help="apply separable conv to decoder and aspp")
     parser.add_argument("--output_stride", type=int, default=16, choices=[8, 16])
-    parser.add_argument("--ckpt", default="deeplabv3plus/weight/best_deeplabv3plus_resnet50_voc_os16.pth", type=str,
+    parser.add_argument("--ckpt", default="deeplabv3plus/weight/best_deeplabv3plus_resnet101_voc_os16.pth", type=str,
                         help="resume from checkpoint")
     
     '''
@@ -119,13 +119,20 @@ def segment(input_img):
 
     return colorized_preds
 
-def generater_trimap(img):
+def generater_trimap(img,size,defg,num_iter):
     
     parser1 = argparse.ArgumentParser()
     opts = parser1.parse_args() 
-    opts.size = 20
-    opts.defg = Erosion  # None/Dilation/Erosion
-    opts.num_iter = 5   #Dilation/Erosion num iters
+    opts.size = size
+    if defg==0:
+        opts.defg = None
+        opts.num_iter = 0 #Dilation/Erosion num iters
+    elif defg ==1:
+        opts.defg = Dilation
+        opts.num_iter = num_iter #Dilation/Erosion num iters
+    elif defg ==2:
+        opts.defg = Erosion
+        opts.num_iter = num_iter #Dilation/Erosion num iters
 
     # Change to Mask (0 or 255)
     img_np = np.array(img)
