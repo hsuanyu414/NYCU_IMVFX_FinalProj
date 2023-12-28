@@ -12,8 +12,10 @@ import numpy as np
 from seg import generater_trimap, segment
 
 class MyDialog(QtWidgets.QDialog, Ui_Dialog):
+    # inherit from both classes and add some attributes and links to buttons
     def __init__(self):
         super().__init__()
+        # add attributes
         self.fg_image = None
         self.segment = None
         self.trimap = None
@@ -24,11 +26,12 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         self.size_value = 20
         self.defg_value = 0
         self.num_iters_value = 0
-
         self.matting_args = matting.args_init()
         self.matting_model = matting.model_load(self.matting_args)
         
         self.setupUi(self)
+        
+        # link actions to functions
         self.select_fg.clicked.connect(self.select_foreground)
         self.crop_fg.clicked.connect(self.crop_foreground)
         self.select_tri.clicked.connect(self.select_trimap) 
@@ -37,7 +40,6 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         self.select_bg.clicked.connect(self.select_background)
         self.pre_alpha.clicked.connect(self.predict_alpha)
         self.com.clicked.connect(self.compose)
-        
         self.spinBox_size.valueChanged.connect(self.size_changed)
         self.spinBox_num_iters.valueChanged.connect(self.num_iters_changed)
         self.comboBox.currentIndexChanged.connect(self.defg_changed)
@@ -47,6 +49,7 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         self.save_com_pure.clicked.connect(self.save_compose_pure)
 
     def qimg2np(self, qimg):
+        # input qimg is a QImage object and output arr is a numpy array
         qimg = qimg.convertToFormat(QtGui.QImage.Format.Format_RGB888)
         width = qimg.width()
         height = qimg.height()
@@ -56,12 +59,14 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         return arr
 
     def np2qimg(self, arr):
+        # input arr is a numpy array and output qimg is a QImage object
         height, width, channel = arr.shape
         bytesPerLine = 3 * width
         qimg = QtGui.QImage(arr.data, width, height, bytesPerLine, QtGui.QImage.Format_RGB888)
         return qimg
 
     def select_image(self):
+        # select image and return a numpy array
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         fileName, _ = QFileDialog.getOpenFileName(self, "Select Image", "", "Image Files (*.png *.jpg *.jpeg *.bmp *.gif)", options=options)
@@ -69,13 +74,9 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
             image = cv2.imread(fileName, cv2.IMREAD_COLOR)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             return image
-            # pixmap = QtGui.QPixmap(fileName)
-            # if not pixmap.isNull():
-            #     image = pixmap.toImage()
-            #     image = self.qimg2np(image)
-            #     return image
 
     def show_image(self, image, graphicsView):
+        # show image in graphicsView
         pixmap = QtGui.QPixmap.fromImage(self.np2qimg(image))
         pixmap.scaled(graphicsView.size(), QtCore.Qt.KeepAspectRatio)
         scene = QtWidgets.QGraphicsScene()
@@ -83,7 +84,7 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         graphicsView.setScene(scene)
         graphicsView.fitInView(scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
-    
+    # select related functions
     def select_foreground(self):
         print("Select Foreground button clicked")
         ret = self.select_image()
@@ -101,6 +102,16 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         else:
             self.trimap = ret
         self.show_image(self.trimap, self.tri)
+
+    def select_background(self):
+        print("Select Background button clicked")
+        ret = self.select_image()
+        if ret is None:
+            return
+        else:
+            self.bg_image = ret 
+        self.show_image(self.bg_image, self.bg)
+    # end of select related functions
 
     def generater_segment(self):
         print("Generate Segment button clicked")
@@ -154,15 +165,8 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
 
         self.show_image(self.trimap, self.tri)
 
-    def select_background(self):
-        print("Select Background button clicked")
-        ret = self.select_image()
-        if ret is None:
-            return
-        else:
-            self.bg_image = ret 
-        self.show_image(self.bg_image, self.bg)
 
+    # predict alpha matte
     def predict_alpha(self):
         if self.fg_image is None or self.trimap is None:
             print("Foreground image or trimap is not selected")
@@ -171,6 +175,7 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         self.pure_fg = matting.composing(self.fg_image, self.alpha_matte)
         self.show_image(self.alpha_matte, self.alpha)
 
+    # compose
     def compose(self):
         if self.fg_image is None or self.trimap is None:
             print("Foreground image or background image or trimap is not selected")
@@ -178,16 +183,19 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         self.res_image = matting.composing(self.fg_image, self.alpha_matte, self.bg_image)
         self.show_image(self.res_image, self.com_res)
     
+    # save image
     def save_img(self, image):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         fileName, _ = QFileDialog.getSaveFileName(self, "Save Image", "", "Image Files (*.png *.jpg *.jpeg *.bmp *.gif)", options=options)
         if fileName:
+            # check if the file extension is correct
             if fileName.split(".")[-1] not in ["png", "jpg", "jpeg", "bmp", "gif"]:
                 fileName += ".png"
             if image.shape[2] == 3:
                 image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-            elif image.shape[2] == 4:
+            elif image.shape[2] == 4: # transparent image (RGBA image)
+                # check if the file extension is correct for transparent image
                 if fileName.split(".")[-1] != "png":
                     fileName += ".png"
                 image = cv2.cvtColor(image, cv2.COLOR_RGBA2BGRA)
@@ -196,6 +204,7 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
                 return
             cv2.imwrite(fileName, image)
 
+    # save related functions
     def save_trimap(self):
         if self.trimap is None:
             print("Trimap is not selected")
@@ -219,7 +228,9 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
             print("Compose image is not selected")
             return
         self.save_img(self.pure_fg)
+    # end of save related functions
 
+    # crop foreground
     def crop_foreground(self):
         if self.fg_image is None:
             print("Foreground image is not selected")
@@ -234,20 +245,21 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
         cropping = False
         x_start, y_start, x_end, y_end = 0, 0, 0, 0
 
+        # define crop function for CV2 
         def crop(event, x, y, flags, param):
             nonlocal x_start, y_start, x_end, y_end, cropping, clone_image, fg_image_temp
 
-            if event == cv2.EVENT_LBUTTONDOWN:
+            if event == cv2.EVENT_LBUTTONDOWN: # initialize the crop
                 x_start, y_start, x_end, y_end = x, y, x, y
                 cropping = True
 
-            elif event == cv2.EVENT_MOUSEMOVE:
+            elif event == cv2.EVENT_MOUSEMOVE: # show the crop region when mouse moves
                 if cropping:
                     clone_image = fg_image_temp.copy()
                     cv2.rectangle(clone_image, (x_start, y_start), (x, y), (0, 255, 0), 2)
                     cv2.imshow("Select Region to Crop", clone_image)
 
-            elif event == cv2.EVENT_LBUTTONUP:
+            elif event == cv2.EVENT_LBUTTONUP: # end up the crop and show the preview of cropped image
                 x_end, y_end = x, y
                 cropping = False
                 cv2.rectangle(clone_image, (x_start, y_start), (x_end, y_end), (0, 255, 0), 2)
@@ -257,10 +269,11 @@ class MyDialog(QtWidgets.QDialog, Ui_Dialog):
 
         while True:
             key = cv2.waitKey(1) & 0xFF
-            if key == 13:
+            if key == 13: # press enter to confirm
                 break
         cv2.destroyAllWindows()
 
+        # confirm the region to crop and show the cropped image then return
         cropped_image = fg_image_temp[min(y_start, y_end):max(y_start, y_end), min(x_start, x_end):max(x_start, x_end)]
         cv2.imshow("Cropped Foreground Image", cropped_image)
         cv2.waitKey(0)

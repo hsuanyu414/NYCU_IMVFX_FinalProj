@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(1180, 754)
+        Dialog.resize(1180, 600)
         self.matting_tool = QtWidgets.QGroupBox(Dialog)
         self.matting_tool.setGeometry(QtCore.QRect(30, 10, 1111, 561))
         self.matting_tool.setObjectName("matting_tool")

@@ -50,6 +50,7 @@ def matting(args, model, image, trimap):
     if(trimap.shape[2] == 3):
         trimap = cv2.cvtColor(trimap, cv2.COLOR_RGB2GRAY)
 
+    # inference using deep image matting
     with torch.no_grad():
         pred_mattes = inference_img_whole(args, model, image, trimap)
 
@@ -66,11 +67,12 @@ def composing(fg, alpha_matte, bg=None):
         alpha_matte = np.expand_dims(alpha_matte, axis=2)
     alpha_matte = alpha_matte.astype(np.float32) / 255.0
     if bg is None:
-        # return an RGBA image
+        # return an RGBA image if bg is None
         composing_res = fg * alpha_matte
         composing_alpha = alpha_matte * 255
         composing_res = np.concatenate((composing_res, composing_alpha[:,:,0:1]), axis=2)
     else:
+        # resize the bg to the same size of fg
         bg = cv2.resize(bg, (fg.shape[1], fg.shape[0]), interpolation=cv2.INTER_LINEAR)
         composing_res = fg * alpha_matte + bg * (1 - alpha_matte)
 
